@@ -69,10 +69,13 @@ directory = ""
 SaveDir_Path=""
 # data = pd.read_csv("data/CSV_data/#3.csv")
 
+# 獲取當前工作目錄
+current_working_directory = os.getcwd()
+
 print("Chose csv root path :")
 root_tk = tk.Tk()
 root_tk.withdraw()
-directory_path = filedialog.askdirectory()
+directory_path = filedialog.askdirectory(initialdir=current_working_directory, title="選擇有CSV的資料夾")
 directory_path+="/"
 
 csv_files = find_csv_files(directory_path )
@@ -88,20 +91,23 @@ if len(csv_files) >0 :
         file_tile = csv_file.split('/')[-1][:-4]
         
         # SaveDir_Path += file_tile
-        
+
+        create_or_check_directory(SaveDir_Path + file_tile + "/" )
+        SaveDir_Path_new =  SaveDir_Path + file_tile + "/"
+
         data = pd.read_csv( csv_file )
         
         plt.figure(figsize=figsize_setting)#, dpi=dpin
         Heartbit_data = data.iloc[:,Heartbit_Data_Index] #Heartbit data
         plt.plot(Heartbit_data, color='blue',linestyle='-', label="Heartbit")
         plt.title("Heartbit")
-        plt.savefig(SaveDir_Path + file_tile +"_HB.png")
+        plt.savefig(SaveDir_Path_new + file_tile +"_HB.png")
 
         plt.figure(figsize=figsize_setting) 
         data_2 = data.iloc[:,OGH_Bit_Data_Index] #OGH_Bit data
         plt.plot(data_2, color='blue', label="Sku")
         plt.title("Fan Ctrl")
-        plt.savefig(SaveDir_Path + file_tile +"_OGH.png")
+        plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png")
 
         plt.figure(figsize=figsize_setting)#, dpi=dpin
         Fan1_RPM_data = data.iloc[:,Fan1_RPM_Index] #RPM data
@@ -110,7 +116,7 @@ if len(csv_files) >0 :
         plt.plot(Fan2_RPM_data, color=orange_color,label="Fan2_RPM")
         plt.title("FAN RPM")
         plt.legend()
-        plt.savefig(SaveDir_Path + file_tile +"_RPM.png")
+        plt.savefig(SaveDir_Path_new + file_tile +"_RPM.png")
 
         plt.figure(figsize=figsize_setting)#, dpi=dpin
         Intel_PL1_data = data.iloc[:,Intel_PL1_Index] #PL1 data
@@ -121,7 +127,7 @@ if len(csv_files) >0 :
         plt.plot(Intel_PL2_data, color=orange_color ,label='PL2')
         plt.title(file_tile)
         plt.legend()
-        plt.savefig(SaveDir_Path + file_tile +"_PLx.png")
+        plt.savefig(SaveDir_Path_new + file_tile +"_PLx.png")
 
         plt.figure(figsize=figsize_setting)#, dpi=dpin
         IR_temp_data = data.iloc[:,IR_temp_Index] #PL1 data
@@ -132,7 +138,7 @@ if len(csv_files) >0 :
         plt.plot(VGA_temp_data, color='gray' ,label='VGA')
         plt.title("Temp")
         plt.legend() # loc='lower left'
-        plt.savefig(SaveDir_Path + file_tile +"_Temp.png")
+        plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png")
     
 else:
     print("No CSV file")
