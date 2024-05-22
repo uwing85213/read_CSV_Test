@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import csv
 import pandas as pd
 import numpy as np
-
+import chardet
 
 def find_csv_files(directory):
     """
@@ -45,7 +45,20 @@ def create_or_check_directory(directory):
     else:
         print(f"資料夾 '{directory}' 已經存在")
 
+# 檢測檔案編碼
+def detect_encoding(file_path):
+    with open(file_path, 'rb') as f:
+        raw_data = f.read()
+        result = chardet.detect(raw_data)
+        encoding = result['encoding']
+        return encoding
 
+# 使用檢測到的編碼讀取 CSV 檔案
+def read_csv_with_detected_encoding(file_path):
+    encoding = detect_encoding(file_path)
+    print(f"Detected encoding: {encoding}")
+    df = pd.read_csv(file_path, encoding=encoding)
+    return df
 
 
 # Parameter
@@ -95,7 +108,8 @@ if len(csv_files) >0 :
         create_or_check_directory(SaveDir_Path + file_tile + "/" )
         SaveDir_Path_new =  SaveDir_Path + file_tile + "/"
 
-        data = pd.read_csv( csv_file )
+        # data = pd.read_csv( csv_file )
+        data = read_csv_with_detected_encoding( csv_file )
         
         plt.figure(figsize=figsize_setting)#, dpi=dpin
         Heartbit_data = data.iloc[:,Heartbit_Data_Index] #Heartbit data
