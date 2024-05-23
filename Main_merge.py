@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import csv
 import pandas as pd
 import numpy as np
-import chardet
+import codecs
 
 def find_csv_files(directory):
     """
@@ -47,19 +47,36 @@ def create_or_check_directory(directory):
 
 # 檢測檔案編碼
 def detect_encoding(file_path):
-    with open(file_path, 'rb') as f:
-        raw_data = f.read()
-        result = chardet.detect(raw_data)
-        encoding = result['encoding']
-        return encoding
+    # 定義預期的編碼列表，按優先順序排列
+    expected_encodings = ['utf-8', 'cp950', 'big5', 'gb18030']  # 你也可以根據你的需求調整這個列表
+
+    for encoding in expected_encodings:
+        try:
+            with open(file_path, 'r', encoding=encoding) as f:
+                f.read()  # 此處實際上不需要讀取文件內容，但是open函數會根據文件內容進行編碼檢測
+                return encoding
+        except UnicodeDecodeError:
+            continue
+
+    # 如果所有預期的編碼都失敗，則返回 None 或者引發異常，取決於你的需求
+    return None
 
 # 使用檢測到的編碼讀取 CSV 檔案
 def read_csv_with_detected_encoding(file_path):
     encoding = detect_encoding(file_path)
     print(f"Detected encoding: {encoding}")
-    df = pd.read_csv(file_path, encoding=encoding)
+    df = pd.read_csv(file_path, encoding=encoding, on_bad_lines='skip' )
+    # 刪除最後兩行
+    #df = df[:-1]
     return df
 
+# 去除非數值資料
+def remove_non_numeric(df, column_index):
+    # 選取特定的列並轉換為數值類型，非數值資料會被轉換為 NaN
+    df.iloc[:, column_index] = pd.to_numeric(df.iloc[:, column_index], errors='coerce')
+    # 去除包含 NaN 的行
+    df = df.dropna(subset=[df.columns[column_index]])
+    return df
 
 # Parameter
 Heartbit_Data_Index = 58
@@ -108,61 +125,101 @@ if len(csv_files) >0 :
         create_or_check_directory(SaveDir_Path + file_tile + "/" )
         SaveDir_Path_new =  SaveDir_Path + file_tile + "/"
 
-        data = pd.read_csv( csv_file )
-        #data = read_csv_with_detected_encoding( csv_file )
-        
-        plt.figure(figsize=figsize_setting)#, dpi=dpin
-        Heartbit_data = data.iloc[:,Heartbit_Data_Index] #Heartbit data
-        plt.ylim(-10, 1400) #ylabel = 0~6
-        plt.grid(axis='y', linestyle='--',color='gray', linewidth=1)
-        plt.plot(Heartbit_data, color='blue',linestyle='-', label="Heartbit")
-        plt.title("Heartbit")
-        plt.savefig(SaveDir_Path_new + file_tile +"_HB.png")
+        # data = pd.read_csv( csv_file )
+        data = read_csv_with_detected_encoding( csv_file )
 
-        plt.figure(figsize=figsize_setting) 
-        data_2 = data.iloc[:,OGH_Bit_Data_Index] #OGH_Bit data
-        plt.ylim(-0.1, 6) #ylabel = 0~6
-        plt.grid(axis='y', linestyle='--')
-        plt.plot(data_2, color='blue', label="Sku")
-        plt.title("Fan Ctrl")
-        plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png")
+        try:
+            plt.figure(figsize=figsize_setting)#, dpi=dpin
+            Heartbit_data = data.iloc[:,Heartbit_Data_Index] #Heartbit data
+            check_Colum_value = data.iloc[ 0 , Heartbit_Data_Index-3]
+            if (check_Colum_value == "Heartbit" ):
+                plt.ylim(-10, 1400) #ylabel = 0~6
+                plt.grid(axis='y', linestyle='--',color='gray', linewidth=1)
+                plt.plot(Heartbit_data, color='blue',linestyle='-', label="Heartbit")
+                plt.title("Heartbit")
+                plt.savefig(SaveDir_Path_new + file_tile +"_HB.png")
+            else:
+                print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是Heartbit \n")
+        except Exception as e:
+            print(f"\nAn error occurred: {e}")
 
-        plt.figure(figsize=figsize_setting)#, dpi=dpin
-        Fan1_RPM_data = data.iloc[:,Fan1_RPM_Index] #RPM data
-        Fan2_RPM_data = data.iloc[:,Fan2_RPM_Index] #RPM data
-        plt.ylim(0, 70) #ylabel = 0~70
-        plt.grid(axis='y', linestyle='--')
-        plt.plot(Fan1_RPM_data, color='blue',label="Fan1_RPM" )
-        plt.plot(Fan2_RPM_data, color=orange_color,label="Fan2_RPM")
-        plt.title("FAN RPM")
-        plt.legend()
-        plt.savefig(SaveDir_Path_new + file_tile +"_RPM.png")
+        try:
+            plt.figure(figsize=figsize_setting) 
+            OGH_Bit_Data = data.iloc[:,OGH_Bit_Data_Index] #OGH_Bit data
+            check_Colum_value = data.iloc[ 0 , OGH_Bit_Data_Index-2]
+            if (check_Colum_value == "OGH_Bit" ):
+                plt.ylim(-0.1, 6) #ylabel = 0~6
+                plt.grid(axis='y', linestyle='--')
+                plt.plot(OGH_Bit_Data, color='blue', label="Sku")
+                plt.title("Fan Ctrl")
+                plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png")
+            else:
+                print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},OGH_Bit \n")
+        except Exception as e:
+            print(f"\nAn error occurred: {e}")
 
-        plt.figure(figsize=figsize_setting)#, dpi=dpin
-        Intel_PL1_data = data.iloc[:,Intel_PL1_Index] #PL1 data
-        Intel_PL2_data = data.iloc[:,Intel_PL2_Index] #PL2 data
-        Intel_PL4_data = data.iloc[:,Intel_PL4_Index] #PL4 data
-        plt.ylim(-1, 250) #ylabel = 0~6
-        plt.grid(axis='y', linestyle='--')
-        plt.plot(Intel_PL4_data, color='gray',label='PL4')
-        plt.plot(Intel_PL1_data, color='blue' ,label='PL1')
-        plt.plot(Intel_PL2_data, color=orange_color ,label='PL2')
-        plt.title(file_tile)
-        plt.legend()
-        plt.savefig(SaveDir_Path_new + file_tile +"_PLx.png")
+        try:
+            plt.figure(figsize=figsize_setting)#, dpi=dpin
+            Fan1_RPM_data = data.iloc[:,Fan1_RPM_Index] #RPM data
+            Fan2_RPM_data = data.iloc[:,Fan2_RPM_Index] #RPM data
+            check_Colum_value = data.iloc[ 0 , Fan1_RPM_Index-2]
+            check_Colum_value2 = data.iloc[ 0 , Fan2_RPM_Index-2]
+            if (check_Colum_value == "FAN1_RPM" and check_Colum_value2 == "FAN2_RPM" ):
+                plt.ylim(0, 70) #ylabel = 0~70
+                plt.grid(axis='y', linestyle='--')
+                plt.plot(Fan1_RPM_data, color='blue',label="Fan1_RPM" )
+                plt.plot(Fan2_RPM_data, color=orange_color,label="Fan2_RPM")
+                plt.title("FAN RPM")
+                plt.legend()
+                plt.savefig(SaveDir_Path_new + file_tile +"_RPM.png")
+            else:
+                print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是FAN1_RPM,FAN2_RPM \n")
+        except Exception as e:
+            print(f"\nAn error occurred: {e}")
 
-        plt.figure(figsize=figsize_setting)#, dpi=dpin
-        IR_temp_data = data.iloc[:,IR_temp_Index] #PL1 data
-        CPU_temp_data = data.iloc[:,CPU_temp_Index] #PL2 data
-        VGA_temp_data = data.iloc[:,VGA_temp_Index] #PL4 data
-        plt.ylim(-1, 101) #ylabel = 0~6
-        plt.grid(axis='y', linestyle='--')
-        plt.plot(IR_temp_data, color='blue',label='IR')
-        plt.plot(CPU_temp_data, color=orange_color ,label='CPU')
-        plt.plot(VGA_temp_data, color='gray' ,label='VGA')
-        plt.title("Temp")
-        plt.legend() # loc='lower left'
-        plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png")
+        try:
+            plt.figure(figsize=figsize_setting)#, dpi=dpin
+            Intel_PL1_data = data.iloc[:,Intel_PL1_Index] #PL1 data
+            Intel_PL2_data = data.iloc[:,Intel_PL2_Index] #PL2 data
+            Intel_PL4_data = data.iloc[:,Intel_PL4_Index] #PL4 data
+            check_Colum_value = data.iloc[ 0 , Intel_PL1_Index-2]
+            check_Colum_value2 = data.iloc[ 0 , Intel_PL2_Index-3]
+            check_Colum_value3 = data.iloc[ 0 , Intel_PL4_Index-3]
+            if (check_Colum_value == "PL1" and check_Colum_value2 == "PL2" and check_Colum_value3 == "PL4" ):
+                plt.ylim(-1, 250) #ylabel = 0~6
+                plt.grid(axis='y', linestyle='--')
+                plt.plot(Intel_PL4_data, color='gray',label='PL4')
+                plt.plot(Intel_PL1_data, color='blue' ,label='PL1')
+                plt.plot(Intel_PL2_data, color=orange_color ,label='PL2')
+                plt.title(file_tile)
+                plt.legend()
+                plt.savefig(SaveDir_Path_new + file_tile +"_PLx.png")
+            else:
+                print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是PL1,PL2,PL4 \n")
+        except Exception as e:
+            print(f"\nAn error occurred: {e}")
+
+        try:
+            plt.figure(figsize=figsize_setting)#, dpi=dpin
+            IR_temp_data = data.iloc[:,IR_temp_Index] #PL1 data
+            CPU_temp_data = data.iloc[:,CPU_temp_Index] #PL2 data
+            VGA_temp_data = data.iloc[:,VGA_temp_Index] #PL4 data
+            check_Colum_value = data.iloc[ 0 , IR_temp_Index-2]
+            check_Colum_value2 = data.iloc[ 0 , CPU_temp_Index-2]
+            check_Colum_value3 = data.iloc[ 0 , VGA_temp_Index-2]
+            if (check_Colum_value == "IR_Sensor" and check_Colum_value2 == "CPU_Temp" and check_Colum_value3 == "VGA_Temp" ):
+                plt.ylim(-1, 101) #ylabel = 0~6
+                plt.grid(axis='y', linestyle='--')
+                plt.plot(IR_temp_data, color='blue',label='IR')
+                plt.plot(CPU_temp_data, color=orange_color ,label='CPU')
+                plt.plot(VGA_temp_data, color='gray' ,label='VGA')
+                plt.title("Temp")
+                plt.legend() # loc='lower left'
+                plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png")
+            else:
+                print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是IR_Sensor,CPU_Temp,VGA_Temp \n")
+        except Exception as e:
+            print(f"\nAn error occurred: {e}")
     
 else:
     print("No CSV file")
