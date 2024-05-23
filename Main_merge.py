@@ -64,11 +64,12 @@ def detect_encoding(file_path):
 # 使用檢測到的編碼讀取 CSV 檔案
 def read_csv_with_detected_encoding(file_path):
     encoding = detect_encoding(file_path)
-    print(f"Detected encoding: {encoding}")
-    df = pd.read_csv(file_path, encoding=encoding, on_bad_lines='skip' )
-    # 刪除最後兩行
-    #df = df[:-1]
-    return df
+    if encoding != None:
+        print(f"Detected encoding: {encoding}")
+        df = pd.read_csv(file_path, encoding=encoding, on_bad_lines='skip' )
+        return df, True
+    else:
+        return None,False
 
 # 去除非數值資料
 def remove_non_numeric(df, column_index):
@@ -99,6 +100,10 @@ directory = ""
 SaveDir_Path=""
 # data = pd.read_csv("data/CSV_data/#3.csv")
 
+Error_count = 0
+Error_string = ""
+Str_buffer=""
+
 # 獲取當前工作目錄
 current_working_directory = os.getcwd()
 
@@ -114,9 +119,10 @@ if len(csv_files) >0 :
     create_or_check_directory(directory_path + img_Path)
     # 搜檔案
     SaveDir_Path = directory_path + img_Path
+    Error_string = ""
     for csv_file in csv_files:
+        Error_count = 0
         print(csv_file)
-        
         # do
         file_tile = csv_file.split('/')[-1][:-4]
         
@@ -126,7 +132,11 @@ if len(csv_files) >0 :
         SaveDir_Path_new =  SaveDir_Path + file_tile + "/"
 
         # data = pd.read_csv( csv_file )
-        data = read_csv_with_detected_encoding( csv_file )
+        data, flag = read_csv_with_detected_encoding( csv_file )
+
+        if flag == False:
+            Error_count+=1
+            continue
 
         try:
             plt.figure(figsize=figsize_setting)#, dpi=dpin
@@ -140,8 +150,10 @@ if len(csv_files) >0 :
                 plt.savefig(SaveDir_Path_new + file_tile +"_HB.png")
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是Heartbit \n")
+                Error_count+=1
         except Exception as e:
             print(f"\nAn error occurred: {e}")
+            Error_count+=1
 
         try:
             plt.figure(figsize=figsize_setting) 
@@ -154,9 +166,11 @@ if len(csv_files) >0 :
                 plt.title("Fan Ctrl")
                 plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png")
             else:
-                print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},OGH_Bit \n")
+                print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是OGH_Bit \n")
+                Error_count+=1
         except Exception as e:
             print(f"\nAn error occurred: {e}")
+            Error_count+=1
 
         try:
             plt.figure(figsize=figsize_setting)#, dpi=dpin
@@ -174,8 +188,11 @@ if len(csv_files) >0 :
                 plt.savefig(SaveDir_Path_new + file_tile +"_RPM.png")
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是FAN1_RPM,FAN2_RPM \n")
+                Error_count+=1
+
         except Exception as e:
             print(f"\nAn error occurred: {e}")
+            Error_count+=1
 
         try:
             plt.figure(figsize=figsize_setting)#, dpi=dpin
@@ -196,8 +213,10 @@ if len(csv_files) >0 :
                 plt.savefig(SaveDir_Path_new + file_tile +"_PLx.png")
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是PL1,PL2,PL4 \n")
+                Error_count+=1
         except Exception as e:
             print(f"\nAn error occurred: {e}")
+            Error_count+=1
 
         try:
             plt.figure(figsize=figsize_setting)#, dpi=dpin
@@ -220,7 +239,12 @@ if len(csv_files) >0 :
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是IR_Sensor,CPU_Temp,VGA_Temp \n")
         except Exception as e:
             print(f"\nAn error occurred: {e}")
-    
+            Error_count+=1
+    # =======================================================
+    if Error_count >0:
+        Error_string +="有問題的檔案:" + file_tile + ", 欄位index可能存在偏移 or 非10進位資料, 請手動產圖. \n"
+        with open( SaveDir_Path +'Error_Log.txt', 'w') as file:
+            file.write(Error_string)
 else:
     print("No CSV file")
     
