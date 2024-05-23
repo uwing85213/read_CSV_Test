@@ -101,6 +101,7 @@ SaveDir_Path=""
 # data = pd.read_csv("data/CSV_data/#3.csv")
 
 Error_count = 0
+Error_Flag=False
 Error_string = ""
 Str_buffer=""
 
@@ -120,6 +121,7 @@ if len(csv_files) >0 :
     # 搜檔案
     SaveDir_Path = directory_path + img_Path
     Error_string = ""
+    Error_Flag = False
     for csv_file in csv_files:
         Error_count = 0
         print(csv_file)
@@ -240,11 +242,15 @@ if len(csv_files) >0 :
         except Exception as e:
             print(f"\nAn error occurred: {e}")
             Error_count+=1
+
+        if Error_count >0:
+            Error_string +="有問題的檔案:" + file_tile +"\n"
+            Error_Flag=True
     # =======================================================
-    if Error_count >0:
-        Error_string +="有問題的檔案:" + file_tile + ", 欄位index可能存在偏移 or 非10進位資料, 請手動產圖. \n"
+    if Error_Flag == True:
         with open( SaveDir_Path +'Error_Log.txt', 'w') as file:
             file.write(Error_string)
+            file.write("\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖.")
 else:
     print("No CSV file")
     
