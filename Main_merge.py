@@ -149,7 +149,7 @@ if len(csv_files) >0 :
                 plt.grid(axis='y', linestyle='--',color='gray', linewidth=1)
                 plt.plot(Heartbit_data, color='blue',linestyle='-', label="Heartbit")
                 plt.title("Heartbit")
-                plt.savefig(SaveDir_Path_new + file_tile +"_HB.png")
+                plt.savefig(SaveDir_Path_new + file_tile +"_HB.png", bbox_inches='tight', pad_inches=0.07)
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是Heartbit \n")
                 Error_count+=1
@@ -166,7 +166,7 @@ if len(csv_files) >0 :
                 plt.grid(axis='y', linestyle='--')
                 plt.plot(OGH_Bit_Data, color='blue', label="Sku")
                 plt.title("Fan Ctrl")
-                plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png")
+                plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png", bbox_inches='tight', pad_inches=0.07)
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是OGH_Bit \n")
                 Error_count+=1
@@ -187,7 +187,7 @@ if len(csv_files) >0 :
                 plt.plot(Fan2_RPM_data, color=orange_color,label="Fan2_RPM")
                 plt.title("FAN RPM")
                 plt.legend()
-                plt.savefig(SaveDir_Path_new + file_tile +"_RPM.png")
+                plt.savefig(SaveDir_Path_new + file_tile +"_RPM.png", bbox_inches='tight', pad_inches=0.07)
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是FAN1_RPM,FAN2_RPM \n")
                 Error_count+=1
@@ -212,7 +212,7 @@ if len(csv_files) >0 :
                 plt.plot(Intel_PL2_data, color=orange_color ,label='PL2')
                 plt.title(file_tile)
                 plt.legend()
-                plt.savefig(SaveDir_Path_new + file_tile +"_PLx.png")
+                plt.savefig(SaveDir_Path_new + file_tile +"_PLx.png", bbox_inches='tight', pad_inches=0.07)
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是PL1,PL2,PL4 \n")
                 Error_count+=1
@@ -236,7 +236,7 @@ if len(csv_files) >0 :
                 plt.plot(VGA_temp_data, color='gray' ,label='VGA')
                 plt.title("Temp")
                 plt.legend() # loc='lower left'
-                plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png")
+                plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png", bbox_inches='tight', pad_inches=0.07)
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是IR_Sensor,CPU_Temp,VGA_Temp \n")
         except Exception as e:
