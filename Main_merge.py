@@ -89,7 +89,7 @@ def format_func(value, tick_number):
     return f'{value:.0f}'
 
 # 
-def CombineImg(Path_img1,Path_img2,Path_img3,Path_img4,ImgSavePath,Sku_Name):
+def CombineImg(Path_img1,Path_img2,Path_img3,Path_img4,ImgSavePath,Sku_Name,Custom_Name=None):
     # HB_Img_Path , OGH_Img_Path , RPM_Img_Path , PLx_Img_Path 
     img1 = cv2.imread(Path_img1)
     img2 = cv2.imread(Path_img2)
@@ -112,7 +112,10 @@ def CombineImg(Path_img1,Path_img2,Path_img3,Path_img4,ImgSavePath,Sku_Name):
     # 將上下兩行圖片組合起來
     combined_image = np.vstack((top_row, bottom_row))
     # 保存組合後的圖片
-    cv2.imwrite( (ImgSavePath + Sku_Name + '_combined.png'), combined_image)
+    if Custom_Name == None:
+        cv2.imwrite( (ImgSavePath + Sku_Name + '_combined.png'), combined_image)
+    else:
+        cv2.imwrite( (ImgSavePath + Sku_Name + Custom_Name), combined_image)
     # 圖片組合完成
     print(f"\n圖片組合完成!")
 
@@ -203,7 +206,9 @@ VGA_temp_Index = 70 # for Round 46 , index : BS
 Time_Index = 0 # excel index : A
 
 figsize_setting = (9,7)
-orange_color= "#EA6E1A"
+orange_color = "#EA6E1A"
+puple_color  = '#9467BD' #深紫
+green_color  = '#98DF8A' #深綠
 
 # SaveDir_Path = "data/img/"
 img_Path = "img/"
@@ -219,6 +224,8 @@ TimeLog_Str=""
 TimeLog_Flag = 0
 TimeLog_buff = ""
 Img_count=0
+
+Img_Mix_Temp_RPM_Flag = 0
 
 # 獲取當前工作目錄
 current_working_directory = os.getcwd()
@@ -242,6 +249,7 @@ if len(csv_files) >0 :
         Img_count = 0
         TimeLog_Flag = 0
         TimeLog_buff = ""
+        Img_Mix_Temp_RPM_Flag = 0
         print(csv_file)
         # do
         file_tile = csv_file.split('/')[-1][:-4]
@@ -326,6 +334,7 @@ if len(csv_files) >0 :
                 plt.savefig(SaveDir_Path_new + file_tile +"_RPM.png", bbox_inches='tight', pad_inches=0.07)
                 Img_count += 1
                 RPM_Img_Path = (SaveDir_Path_new + file_tile +"_RPM.png")
+                Img_Mix_Temp_RPM_Flag += 1  # 確認有圖
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是FAN1_RPM,FAN2_RPM \n")
                 Error_count+=1
@@ -378,12 +387,38 @@ if len(csv_files) >0 :
                 plt.legend() # loc='lower left'
                 plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png", bbox_inches='tight', pad_inches=0.07)
                 Img_count += 1    # Temp不產圖，不計算
+                Img_Mix_Temp_RPM_Flag += 1  # 確認有圖
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是IR_Sensor,CPU_Temp,VGA_Temp \n")
                 # Error_count+=1    # Temp其實沒差，有問題在處理
         except Exception as e:
             print(f"\nAn error occurred: {e}")
             Error_count+=1
+        
+        # RPM mix Temp  For David
+
+        try:
+            if (Img_Mix_Temp_RPM_Flag >=2):
+                plt.figure(figsize=figsize_setting)#, dpi=dpin
+                plt.ylim(0, 101) #ylabel = 0~101
+                plt.grid(axis='y', linestyle='--')
+
+                plt.plot(IR_temp_data, color='blue',label='IR')
+                plt.plot(CPU_temp_data, color=orange_color ,label='CPU')
+                plt.plot(VGA_temp_data, color='gray' ,label='VGA')
+
+                plt.plot(Fan1_RPM_data, color=green_color,label="Fan1_RPM" )
+                plt.plot(Fan2_RPM_data, color=puple_color,label="Fan2_RPM")
+                plt.title( file_tile+ "RPM+Temp")
+
+                plt.legend() # loc='lower left'
+                plt.savefig(SaveDir_Path_new + file_tile +"_RPMandTemp.png", bbox_inches='tight', pad_inches=0.07)
+                RPM_Img_Path2=(SaveDir_Path_new + file_tile +"_RPMandTemp.png")
+            else:
+                print(f"\n缺圖片無法做RPM + Temp的組合圖")
+        except Exception as e:
+            print(f"\nAn error occurred: {e}")
+            # Error_count+=1
 
         # go to check index
         if TimeLog_Flag != 0:
@@ -395,6 +430,8 @@ if len(csv_files) >0 :
         # =======================================================
         if Img_count >= 4:
             CombineImg(HB_Img_Path , OGH_Img_Path , RPM_Img_Path , PLx_Img_Path , SaveDir_Path_new , file_tile )
+            if (Img_Mix_Temp_RPM_Flag >=2):
+                CombineImg(HB_Img_Path , OGH_Img_Path , RPM_Img_Path2 , PLx_Img_Path , SaveDir_Path_new , file_tile, Custom_Name = "_combined_Mix.png" )
         else:
             print(f"\n不足4張圖,只有: {Img_count} 張")
     # =======================================================
