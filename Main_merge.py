@@ -91,7 +91,7 @@ def CombineImg(Path_img1,Path_img2,Path_img3,Path_img4,ImgSavePath,Sku_Name):
     img1 = cv2.imread(Path_img1)
     img2 = cv2.imread(Path_img2)
     img3 = cv2.imread(Path_img3)
-    img4 = cv2.imread(Path_img3)
+    img4 = cv2.imread(Path_img4)
     # print("shape_1:",img1.shape)
     # print("shape_2:",img2.shape)
     # print("shape_3:",img3.shape)
