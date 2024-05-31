@@ -134,22 +134,20 @@ def convert_to_24hr_format(time_str):
 def calculate_time_difference(start_time, end_time):
     """Calculate the difference between two times and return as a formatted string."""
     start_dt = convert_to_24hr_format(start_time)
-    end_dt = convert_to_24hr_format(end_time)
-    
+    end_dt   = convert_to_24hr_format(end_time)
+
     # 如果 end_dt 小于 start_dt，说明跨过了午夜，添加一天时间
     if end_dt < start_dt:
         end_dt += timedelta(days=1)
-    
     # 计算时间差
     time_diff = end_dt - start_dt
-    
     # 提取小时、分钟和秒
     total_seconds = int(time_diff.total_seconds())
     hours = total_seconds // 3600
     minutes = (total_seconds % 3600) // 60
     seconds = total_seconds % 60
-
-    return (f"\t,OGH經過: {hours}時 {minutes}分 {seconds}秒 就失聯, 時間: {hours}時 {minutes}分 {seconds}秒 \n")
+    #return (f"\t,OGH經過: {hours}時 {minutes}分 {seconds}秒 就失聯, 時間: {hours}時 {minutes}分 {seconds}秒 \n")
+    return (f"\t,OGH經過: {hours:02d}時 {minutes:02d}分 {seconds:02d}秒 就失聯, 時間: {hours:02d}時 {minutes:02d}分 {seconds:02d}秒 \n")
 
 def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None):
     # 初始化变量记录第一个变化的索引
@@ -171,7 +169,7 @@ def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None):
             #檢查16進制,進一步檢查實際bit0
             temp_Hex = int(OGH_data[idx]) & OGH_Mask_Bit
             if temp_Hex != OGH_data_Index0_Hex_bit0 :
-                first_change_index = idx
+                first_change_index = (idx+1)    # 從excel看要+1
             break
     # 計算時間
     if first_change_index is not None:
@@ -181,12 +179,12 @@ def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None):
             diff_Flag = 2 # error
             time_difference_str = FileTitle + "_資料異常"
         else:
-            print("Data index:",idx)
-            End_time = Time_data[idx]
-            time_difference_str = calculate_time_difference(Start_time, End_time)
+            print("Data index:",first_change_index)
+            End_time = Time_data[first_change_index]
+            time_difference_str= calculate_time_difference(Start_time, End_time)
             time_difference_str = FileTitle + time_difference_str   # + sku name
         print(time_difference_str)
-        diff_Flag = 1
+        diff_Flag = 1   #有可能異常
     else:
         print("沒有變化")
         diff_Flag = 0
@@ -206,9 +204,11 @@ VGA_temp_Index = 70 # for Round 46 , index : BS
 Time_Index = 0 # excel index : A
 
 figsize_setting = (9,7)
-orange_color = "#EA6E1A"
+orange_color = "#DB6900"
 puple_color  = '#9467BD' #深紫
-green_color  = '#98DF8A' #深綠
+green_color  = '#1EDB5A' #深綠
+red_color    = '#DB3A82'
+# 'blue'   = '#30C4DB'
 
 # SaveDir_Path = "data/img/"
 img_Path = "img/"
@@ -230,6 +230,7 @@ Img_Mix_Temp_RPM_Flag = 0
 # 獲取當前工作目錄
 current_working_directory = os.getcwd()
 
+print("路徑盡量不要有中文\n")
 print("Chose csv root path :")
 root_tk = tk.Tk()
 root_tk.withdraw()
@@ -354,7 +355,7 @@ if len(csv_files) >0 :
             if (check_Colum_value == "PL1" and check_Colum_value2 == "PL2" and check_Colum_value3 == "PL4" ):
                 plt.ylim(-1, 250) #ylabel = 0~6
                 plt.grid(axis='y', linestyle='--')
-                plt.plot(Intel_PL4_data, color='gray',label='PL4')
+                plt.plot(Intel_PL4_data, color=red_color,label='PL4')
                 plt.plot(Intel_PL1_data, color='blue' ,label='PL1')
                 plt.plot(Intel_PL2_data, color=orange_color ,label='PL2')
                 plt.title(file_tile + "_PLx")
@@ -382,7 +383,7 @@ if len(csv_files) >0 :
                 plt.grid(axis='y', linestyle='--')
                 plt.plot(IR_temp_data, color='blue',label='IR')
                 plt.plot(CPU_temp_data, color=orange_color ,label='CPU')
-                plt.plot(VGA_temp_data, color='gray' ,label='VGA')
+                plt.plot(VGA_temp_data, color=red_color ,label='VGA')
                 plt.title( file_tile+ "_Temp")
                 plt.legend() # loc='lower left'
                 plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png", bbox_inches='tight', pad_inches=0.07)
@@ -405,11 +406,11 @@ if len(csv_files) >0 :
 
                 plt.plot(IR_temp_data, color='blue',label='IR')
                 plt.plot(CPU_temp_data, color=orange_color ,label='CPU')
-                plt.plot(VGA_temp_data, color='gray' ,label='VGA')
+                plt.plot(VGA_temp_data, color=red_color ,label='VGA')
 
                 plt.plot(Fan1_RPM_data, color=green_color,label="Fan1_RPM" )
                 plt.plot(Fan2_RPM_data, color=puple_color,label="Fan2_RPM")
-                plt.title( file_tile+ "RPM+Temp")
+                plt.title( file_tile+ "_RPM and Temp")
 
                 plt.legend() # loc='lower left'
                 plt.savefig(SaveDir_Path_new + file_tile +"_RPMandTemp.png", bbox_inches='tight', pad_inches=0.07)
