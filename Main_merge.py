@@ -152,7 +152,7 @@ def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None):
     time_difference_str = "0"
     diff_Flag = 0
     OGH_Mask_Bit = 0x1  # bit0
-    print("type: ",type(OGH_data[0]),type(hex(OGH_data[0])))
+    # print("type: ",type(OGH_data[0]),type(hex(OGH_data[0])))
     OGH_data_Index0_Dec = OGH_data[0]
     OGH_data_Index0_Hex_bit0 = int(OGH_data[0]) & OGH_Mask_Bit
     temp_Hex = 0x0
@@ -176,6 +176,7 @@ def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None):
             diff_Flag = 2 # error
             time_difference_str = FileTitle + "_資料異常"
         else:
+            print("Data index:",idx)
             End_time = Time_data[idx]
             time_difference_str = calculate_time_difference(Start_time, End_time)
             time_difference_str = FileTitle + time_difference_str   # + sku name
@@ -285,17 +286,21 @@ if len(csv_files) >0 :
             plt.figure(figsize=figsize_setting) 
             OGH_Bit_Data = data.iloc[:,OGH_Bit_Data_Index] #OGH_Bit data
             check_Colum_value = data.iloc[ 0 , OGH_Bit_Data_Index-2]
+
+            # 取bit0
+            OGH_Bit_Data_bit0 = [element & 0x1 for element in OGH_Bit_Data]
+
             if (check_Colum_value == "OGH_Bit" ):
-                plt.ylim(-0.1, 6) #ylabel = 0~6
+                plt.ylim(-0.1, 1.2) #ylabel = 0~6
                 plt.grid(axis='y', linestyle='--')
-                plt.plot(OGH_Bit_Data, color='blue', label="Sku")
+                plt.plot(OGH_Bit_Data_bit0, color='blue', label="Sku")
                 plt.title(file_tile +"_Fan Ctrl")
                 plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png", bbox_inches='tight', pad_inches=0.07)
                 Img_count += 1
                 OGH_Img_Path = (SaveDir_Path_new + file_tile +"_OGH.png")
 
                 # 檢查時間差
-                TimeLog_Flag , TimeLog_buff = Check_OGH_Bit_Diff( OGH_Bit_Data , Time_data , file_tile )
+                TimeLog_Flag , TimeLog_buff = Check_OGH_Bit_Diff( OGH_Bit_Data_bit0 , Time_data , file_tile )
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是OGH_Bit \n")
                 Error_count+=1
