@@ -15,6 +15,7 @@ import pandas as pd
 import numpy as np
 import codecs
 import cv2
+from datetime import datetime, timedelta
 
 def find_csv_files(directory):
     """
@@ -113,9 +114,81 @@ def CombineImg(Path_img1,Path_img2,Path_img3,Path_img4,ImgSavePath,Sku_Name):
     # 圖片組合完成
     print(f"\n圖片組合完成!")
 
+def convert_to_24hr_format(time_str):
+    """Convert a time string with '上午' or '下午' to 24-hour format."""
+    time_str = time_str.strip()
+    if "上午" in time_str:
+        time_str = time_str.replace("上午", "AM")
+    elif "下午" in time_str:
+        time_str = time_str.replace("下午", "PM")
+    try:
+        return datetime.strptime(time_str, '%p %I:%M:%S')
+    except ValueError:
+        return datetime.strptime(time_str, '%H:%M:%S')
+
+def calculate_time_difference(start_time, end_time):
+    """Calculate the difference between two times and return as a formatted string."""
+    start_dt = convert_to_24hr_format(start_time)
+    end_dt = convert_to_24hr_format(end_time)
+    
+    # 如果 end_dt 小于 start_dt，说明跨过了午夜，添加一天时间
+    if end_dt < start_dt:
+        end_dt += timedelta(days=1)
+    
+    # 计算时间差
+    time_diff = end_dt - start_dt
+    
+    # 提取小时、分钟和秒
+    total_seconds = int(time_diff.total_seconds())
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+
+    return (f"\t,OGH經過: {hours}時 {minutes}分 {seconds}秒 就失聯, 時間: {hours}時 {minutes}分 {seconds}秒 \n")
+
+def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None):
+    # 初始化变量记录第一个变化的索引
+    first_change_index = None
+    time_difference_str = "0"
+    diff_Flag = 0
+    OGH_Mask_Bit = 0x1  # bit0
+    print("type: ",type(OGH_data[0]),type(hex(OGH_data[0])))
+    OGH_data_Index0_Dec = OGH_data[0]
+    OGH_data_Index0_Hex_bit0 = int(OGH_data[0]) & OGH_Mask_Bit
+    temp_Hex = 0x0
+    if ( len(OGH_data) != len(Time_data)):
+        print("長度不匹配")
+
+    # 遍历列表
+    for idx in range(1, len(OGH_data)):
+        #檢查10進制是否不一樣
+        if OGH_data[idx] != OGH_data_Index0_Dec :
+            #檢查16進制,進一步檢查實際bit0
+            temp_Hex = int(OGH_data[idx]) & OGH_Mask_Bit
+            if temp_Hex != OGH_data_Index0_Hex_bit0 :
+                first_change_index = idx
+            break
+    # 計算時間
+    if first_change_index is not None:
+        Start_time = Time_data[0]
+        if (idx > len(Time_data)):
+            print("長度不匹配")
+            diff_Flag = 2 # error
+            time_difference_str = FileTitle + "_資料異常"
+        else:
+            End_time = Time_data[idx]
+            time_difference_str = calculate_time_difference(Start_time, End_time)
+            time_difference_str = FileTitle + time_difference_str   # + sku name
+        print(time_difference_str)
+        diff_Flag = 1
+    else:
+        print("沒有變化")
+        diff_Flag = 0
+    return diff_Flag , time_difference_str
+
 # Parameter
 Heartbit_Data_Index = 58
-OGH_Bit_Data_Index = 49
+OGH_Bit_Data_Index = 49 # excel index : AX
 Fan1_RPM_Index = 17
 Fan2_RPM_Index = 21
 Intel_PL4_Index = 13
@@ -124,6 +197,7 @@ Intel_PL1_Index = 3
 IR_temp_Index = 25
 CPU_temp_Index = 29
 VGA_temp_Index = 78
+Time_Index = 0 # excel index : A
 
 figsize_setting = (9,7)
 orange_color= "#EA6E1A"
@@ -138,6 +212,9 @@ Error_count = 0
 Error_Flag=False
 Error_string = ""
 Str_buffer=""
+TimeLog_Str=""
+TimeLog_Flag = 0
+TimeLog_buff = ""
 Img_count=0
 
 # 獲取當前工作目錄
@@ -160,6 +237,8 @@ if len(csv_files) >0 :
     for csv_file in csv_files:
         Error_count = 0
         Img_count = 0
+        TimeLog_Flag = 0
+        TimeLog_buff = ""
         print(csv_file)
         # do
         file_tile = csv_file.split('/')[-1][:-4]
@@ -175,6 +254,13 @@ if len(csv_files) >0 :
         if flag == False:
             Error_count+=1
             continue
+
+        # Read Time data
+        try:
+            Time_data = data.iloc[:,Time_Index]
+        except Exception as e:
+            print(f"\nAn error occurred: {e}")
+            Error_count+=1
 
         try:
             plt.figure(figsize=figsize_setting)#, dpi=dpin
@@ -207,6 +293,9 @@ if len(csv_files) >0 :
                 plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png", bbox_inches='tight', pad_inches=0.07)
                 Img_count += 1
                 OGH_Img_Path = (SaveDir_Path_new + file_tile +"_OGH.png")
+
+                # 檢查時間差
+                TimeLog_Flag , TimeLog_buff = Check_OGH_Bit_Diff( OGH_Bit_Data , Time_data , file_tile )
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是OGH_Bit \n")
                 Error_count+=1
@@ -289,6 +378,10 @@ if len(csv_files) >0 :
             print(f"\nAn error occurred: {e}")
             Error_count+=1
 
+        # go to check index
+        if TimeLog_Flag != 0:
+            TimeLog_Str += TimeLog_buff
+        # =======================================================
         if Error_count >0:
             Error_string +="有問題的檔案:" + file_tile +"\n"
             Error_Flag=True
@@ -302,6 +395,11 @@ if len(csv_files) >0 :
         with open( SaveDir_Path +'Error_Log.txt', 'w') as file:
             file.write(Error_string)
             file.write("\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖.")
+
+    with open( SaveDir_Path +'OGH_Time_Log.txt', 'w') as file:
+            file.write(TimeLog_Str)
+            file.write("\n===========================")
+            file.write("\n其他Sku沒有發現OGH Bit的變化")
     
 else:
     print("No CSV file")
