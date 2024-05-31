@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='Read_V4',
+    name='Read_V5_combinedImg',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

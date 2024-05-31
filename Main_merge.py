@@ -9,10 +9,12 @@ import os
 import tkinter as tk
 from tkinter import filedialog
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import csv
 import pandas as pd
 import numpy as np
 import codecs
+import cv2
 
 def find_csv_files(directory):
     """
@@ -79,6 +81,38 @@ def remove_non_numeric(df, column_index):
     df = df.dropna(subset=[df.columns[column_index]])
     return df
 
+# 自定义刻度格式化函数
+def format_func(value, tick_number):
+    return f'{value:.0f}'
+
+# 
+def CombineImg(Path_img1,Path_img2,Path_img3,Path_img4,ImgSavePath,Sku_Name):
+    # HB_Img_Path , OGH_Img_Path , RPM_Img_Path , PLx_Img_Path 
+    img1 = cv2.imread(Path_img1)
+    img2 = cv2.imread(Path_img2)
+    img3 = cv2.imread(Path_img3)
+    img4 = cv2.imread(Path_img3)
+    # print("shape_1:",img1.shape)
+    # print("shape_2:",img2.shape)
+    # print("shape_3:",img3.shape)
+    # print("shape_4:",img4.shape)
+    height, width, _ = img1.shape
+    # img1 = cv2.resize(img1, (width, height))
+    img2 = cv2.resize(img2, (width, height))
+    img3 = cv2.resize(img3, (width, height))
+    img4 = cv2.resize(img4, (width, height))
+
+    # 組合左上和右上圖片
+    top_row = np.hstack((img4, img2))
+    # 組合左下和右下圖片
+    bottom_row = np.hstack((img1, img3))
+    # 將上下兩行圖片組合起來
+    combined_image = np.vstack((top_row, bottom_row))
+    # 保存組合後的圖片
+    cv2.imwrite( (ImgSavePath + Sku_Name + '_combined.png'), combined_image)
+    # 圖片組合完成
+    print(f"\n圖片組合完成!")
+
 # Parameter
 Heartbit_Data_Index = 58
 OGH_Bit_Data_Index = 49
@@ -104,6 +138,7 @@ Error_count = 0
 Error_Flag=False
 Error_string = ""
 Str_buffer=""
+Img_count=0
 
 # 獲取當前工作目錄
 current_working_directory = os.getcwd()
@@ -124,6 +159,7 @@ if len(csv_files) >0 :
     Error_Flag = False
     for csv_file in csv_files:
         Error_count = 0
+        Img_count = 0
         print(csv_file)
         # do
         file_tile = csv_file.split('/')[-1][:-4]
@@ -148,8 +184,10 @@ if len(csv_files) >0 :
                 plt.ylim(-10, 1400) #ylabel = 0~6
                 plt.grid(axis='y', linestyle='--',color='gray', linewidth=1)
                 plt.plot(Heartbit_data, color='blue',linestyle='-', label="Heartbit")
-                plt.title("Heartbit")
+                plt.title(file_tile + "_Heartbit")
                 plt.savefig(SaveDir_Path_new + file_tile +"_HB.png", bbox_inches='tight', pad_inches=0.07)
+                HB_Img_Path = (SaveDir_Path_new + file_tile +"_HB.png")
+                Img_count += 1
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是Heartbit \n")
                 Error_count+=1
@@ -165,8 +203,10 @@ if len(csv_files) >0 :
                 plt.ylim(-0.1, 6) #ylabel = 0~6
                 plt.grid(axis='y', linestyle='--')
                 plt.plot(OGH_Bit_Data, color='blue', label="Sku")
-                plt.title("Fan Ctrl")
+                plt.title(file_tile +"_Fan Ctrl")
                 plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png", bbox_inches='tight', pad_inches=0.07)
+                Img_count += 1
+                OGH_Img_Path = (SaveDir_Path_new + file_tile +"_OGH.png")
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是OGH_Bit \n")
                 Error_count+=1
@@ -185,9 +225,11 @@ if len(csv_files) >0 :
                 plt.grid(axis='y', linestyle='--')
                 plt.plot(Fan1_RPM_data, color='blue',label="Fan1_RPM" )
                 plt.plot(Fan2_RPM_data, color=orange_color,label="Fan2_RPM")
-                plt.title("FAN RPM")
+                plt.title(file_tile + "_FAN RPM")
                 plt.legend()
                 plt.savefig(SaveDir_Path_new + file_tile +"_RPM.png", bbox_inches='tight', pad_inches=0.07)
+                Img_count += 1
+                RPM_Img_Path = (SaveDir_Path_new + file_tile +"_RPM.png")
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是FAN1_RPM,FAN2_RPM \n")
                 Error_count+=1
@@ -210,9 +252,11 @@ if len(csv_files) >0 :
                 plt.plot(Intel_PL4_data, color='gray',label='PL4')
                 plt.plot(Intel_PL1_data, color='blue' ,label='PL1')
                 plt.plot(Intel_PL2_data, color=orange_color ,label='PL2')
-                plt.title(file_tile)
+                plt.title(file_tile + "_PLx")
                 plt.legend()
                 plt.savefig(SaveDir_Path_new + file_tile +"_PLx.png", bbox_inches='tight', pad_inches=0.07)
+                Img_count += 1
+                PLx_Img_Path = (SaveDir_Path_new + file_tile +"_PLx.png")
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是PL1,PL2,PL4 \n")
                 Error_count+=1
@@ -234,9 +278,10 @@ if len(csv_files) >0 :
                 plt.plot(IR_temp_data, color='blue',label='IR')
                 plt.plot(CPU_temp_data, color=orange_color ,label='CPU')
                 plt.plot(VGA_temp_data, color='gray' ,label='VGA')
-                plt.title("Temp")
+                plt.title( file_tile+ "_Temp")
                 plt.legend() # loc='lower left'
                 plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png", bbox_inches='tight', pad_inches=0.07)
+                # Img_count += 1    # Temp不產圖，不計算
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是IR_Sensor,CPU_Temp,VGA_Temp \n")
                 # Error_count+=1    # Temp其實沒差，有問題在處理
@@ -247,11 +292,17 @@ if len(csv_files) >0 :
         if Error_count >0:
             Error_string +="有問題的檔案:" + file_tile +"\n"
             Error_Flag=True
+        # =======================================================
+        if Img_count >= 4:
+            CombineImg(HB_Img_Path , OGH_Img_Path , RPM_Img_Path , PLx_Img_Path , SaveDir_Path_new , file_tile )
+        else:
+            print(f"\n不足4張圖,只有: {Img_count} 張")
     # =======================================================
     if Error_Flag == True:
         with open( SaveDir_Path +'Error_Log.txt', 'w') as file:
             file.write(Error_string)
             file.write("\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖.")
+    
 else:
     print("No CSV file")
     
