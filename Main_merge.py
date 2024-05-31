@@ -16,6 +16,7 @@ import numpy as np
 import codecs
 import cv2
 from datetime import datetime, timedelta
+from natsort import natsorted
 
 def find_csv_files(directory):
     """
@@ -32,6 +33,7 @@ def find_csv_files(directory):
         for file in files:
             if file.endswith('.csv'):
                 csv_files.append(os.path.join(root, file))
+    csv_files = natsorted(csv_files)
     return csv_files
 
 def create_or_check_directory(directory):
