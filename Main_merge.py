@@ -239,6 +239,7 @@ if len(csv_files) >0 :
                 plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png", bbox_inches='tight', pad_inches=0.07)
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是IR_Sensor,CPU_Temp,VGA_Temp \n")
+                # Error_count+=1    # Temp其實沒差，有問題在處理
         except Exception as e:
             print(f"\nAn error occurred: {e}")
             Error_count+=1
