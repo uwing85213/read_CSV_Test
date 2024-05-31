@@ -195,9 +195,9 @@ Fan2_RPM_Index = 21
 Intel_PL4_Index = 13
 Intel_PL2_Index = 8
 Intel_PL1_Index = 3
-IR_temp_Index = 25
-CPU_temp_Index = 29
-VGA_temp_Index = 78
+IR_temp_Index = 25  # for Round 46 , index : Z
+CPU_temp_Index = 29 # for Round 46 , index : AD
+VGA_temp_Index = 70 # for Round 46 , index : BS
 Time_Index = 0 # excel index : A
 
 figsize_setting = (9,7)
@@ -291,7 +291,7 @@ if len(csv_files) >0 :
             OGH_Bit_Data_bit0 = [element & 0x1 for element in OGH_Bit_Data]
 
             if (check_Colum_value == "OGH_Bit" ):
-                plt.ylim(-0.1, 1.2) #ylabel = 0~6
+                plt.ylim(-0.1, 1.1) #ylabel = 0~6
                 plt.grid(axis='y', linestyle='--')
                 plt.plot(OGH_Bit_Data_bit0, color='blue', label="Sku")
                 plt.title(file_tile +"_Fan Ctrl")
@@ -375,7 +375,7 @@ if len(csv_files) >0 :
                 plt.title( file_tile+ "_Temp")
                 plt.legend() # loc='lower left'
                 plt.savefig(SaveDir_Path_new + file_tile +"_Temp.png", bbox_inches='tight', pad_inches=0.07)
-                # Img_count += 1    # Temp不產圖，不計算
+                Img_count += 1    # Temp不產圖，不計算
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},{check_Colum_value2},{check_Colum_value3} ,應是IR_Sensor,CPU_Temp,VGA_Temp \n")
                 # Error_count+=1    # Temp其實沒差，有問題在處理
@@ -399,7 +399,7 @@ if len(csv_files) >0 :
     if Error_Flag == True:
         with open( SaveDir_Path +'Error_Log.txt', 'w') as file:
             file.write(Error_string)
-            file.write("\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖.")
+            file.write("\n欄位index可能存在偏移 or 非10進位資料, 請檢查資料夾內缺失的圖片,並手動產圖.")
 
     with open( SaveDir_Path +'OGH_Time_Log.txt', 'w') as file:
             file.write(TimeLog_Str)
