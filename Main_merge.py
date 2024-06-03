@@ -149,40 +149,60 @@ def calculate_time_difference(start_time, end_time):
     #return (f"\t,OGH經過: {hours}時 {minutes}分 {seconds}秒 就失聯, 時間: {hours}時 {minutes}分 {seconds}秒 \n")
     return (f"\t,OGH經過: {hours:02d}時 {minutes:02d}分 {seconds:02d}秒 就失聯, 時間: {hours:02d}時 {minutes:02d}分 {seconds:02d}秒 \n")
 
-def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None):
+def calculate_time_Cost(Sec_Num):
+    hours = Sec_Num // 3600
+    minutes = (Sec_Num % 3600) // 60
+    seconds = Sec_Num % 60
+    return (f"\t,OGH經過: {hours:02d}時 {minutes:02d}分 {seconds:02d}秒 就失聯, 時間: {hours:02d}時 {minutes:02d}分 {seconds:02d}秒")
+
+def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None , bit0_Check_Error_Flag = False):
     # 初始化变量记录第一个变化的索引
     first_change_index = None
     time_difference_str = "0"
     diff_Flag = 0
     OGH_Mask_Bit = 0x1  # bit0
+    data_len_error = False
     # print("type: ",type(OGH_data[0]),type(hex(OGH_data[0])))
     OGH_data_Index0_Dec = OGH_data[0]
-    OGH_data_Index0_Hex_bit0 = int(OGH_data[0]) & OGH_Mask_Bit
+    if bit0_Check_Error_Flag != True:
+        OGH_data_Index0_Hex_bit0 = int(OGH_data[0]) & OGH_Mask_Bit
+    else:
+        OGH_data_Index0_Hex_bit0 = OGH_data[0]
     temp_Hex = 0x0
     if ( len(OGH_data) != len(Time_data)):
-        print("長度不匹配")
+        data_len_error = True
+        print("資料總長度不匹配")
 
     # 遍历列表
     for idx in range(1, len(OGH_data)):
         #檢查10進制是否不一樣
-        if OGH_data[idx] != OGH_data_Index0_Dec :
-            #檢查16進制,進一步檢查實際bit0
-            temp_Hex = int(OGH_data[idx]) & OGH_Mask_Bit
-            if temp_Hex != OGH_data_Index0_Hex_bit0 :
+        if OGH_data[idx] != OGH_data_Index0_Dec and ( not np.isnan(OGH_data[idx]) ) :
+            if bit0_Check_Error_Flag != True:   # 計算bit 0
+                #檢查16進制,進一步檢查實際bit0
+                temp_Hex = int(OGH_data[idx]) & OGH_Mask_Bit
+                if temp_Hex != OGH_data_Index0_Hex_bit0 :
+                    first_change_index = (idx+1)    # 從excel看要+1
+            else: #不計算bit0
                 first_change_index = (idx+1)    # 從excel看要+1
+            print(OGH_data[idx] , OGH_data_Index0_Dec)
             break
     # 計算時間
     if first_change_index is not None:
         Start_time = Time_data[0]
         if (idx > len(Time_data)):
-            print("長度不匹配")
+            print("長度不匹配,",idx,">",len(Time_data))
             diff_Flag = 2 # error
             time_difference_str = FileTitle + "_資料異常"
         else:
             print("Data index:",first_change_index)
-            End_time = Time_data[first_change_index]
-            time_difference_str= calculate_time_difference(Start_time, End_time)
+            # End_time = Time_data[first_change_index] #算不出時間
+            # End_time = Start_time + timedelta(seconds=first_change_index) # StartTime + (index * 1 sec)   不需要這個
+            time_difference_str= calculate_time_Cost(first_change_index) # 直接計算花了幾秒就好
             time_difference_str = FileTitle + time_difference_str   # + sku name
+            if bit0_Check_Error_Flag != True :
+                time_difference_str +=" \n"
+            else:
+                time_difference_str += " ,無法針對bit 0計算,時間僅供參考 \n" 
         print(time_difference_str)
         diff_Flag = 1   #有可能異常
     else:
@@ -231,6 +251,7 @@ Img_Mix_Temp_RPM_Flag = 0
 current_working_directory = os.getcwd()
 
 print("路徑盡量不要有中文\n")
+print("============= Time Base: 一筆資料為 1 Sec =========\n")
 print("Chose csv root path :")
 root_tk = tk.Tk()
 root_tk.withdraw()
@@ -252,6 +273,7 @@ if len(csv_files) >0 :
         TimeLog_buff = ""
         Img_Mix_Temp_RPM_Flag = 0
         print(csv_file)
+        HB_Img_Path = OGH_Img_Path = RPM_Img_Path = PLx_Img_Path = RPM_Img_Path2 = None
         # do
         file_tile = csv_file.split('/')[-1][:-4]
         
@@ -299,19 +321,37 @@ if len(csv_files) >0 :
             check_Colum_value = data.iloc[ 0 , OGH_Bit_Data_Index-2]
 
             # 取bit0
-            OGH_Bit_Data_bit0 = [element & 0x1 for element in OGH_Bit_Data]
+            bit0_Check_Error_Flag = False
+            try:
+                OGH_Bit_Data_bit0 = [element & 0x1 for element in OGH_Bit_Data]
+            except:
+                bit0_Check_Error_Flag = True
+                print("取bit0失敗,將改用原本Data")
 
             if (check_Colum_value == "OGH_Bit" ):
-                plt.ylim(-0.1, 1.1) #ylabel = 0~6
-                plt.grid(axis='y', linestyle='--')
-                plt.plot(OGH_Bit_Data_bit0, color='blue', label="Sku")
                 plt.title(file_tile +"_Fan Ctrl")
+                plt.grid(axis='y', linestyle='--')
+                if bit0_Check_Error_Flag == True:
+                    # oring data
+                    if (np.nanmax(OGH_data) >1) and (np.nanmin(OGH_data) == 0) :
+                        plt.ylim(-0.1, 6) #ylabel = 0~6
+                    else:   #有些檔案只有1跟0 我的天啊
+                        plt.ylim(-0.1, 1.1) #ylabel = 0~6
+                    plt.plot(OGH_Bit_Data, color='blue', label="Sku")
+                else: # bit 0 data
+                    plt.ylim(-0.1, 1.1) #ylabel = 0~6
+                    plt.plot(OGH_Bit_Data_bit0, color='blue', label="Sku")
+                
+                
                 plt.savefig(SaveDir_Path_new + file_tile +"_OGH.png", bbox_inches='tight', pad_inches=0.07)
                 Img_count += 1
                 OGH_Img_Path = (SaveDir_Path_new + file_tile +"_OGH.png")
 
                 # 檢查時間差
-                TimeLog_Flag , TimeLog_buff = Check_OGH_Bit_Diff( OGH_Bit_Data_bit0 , Time_data , file_tile )
+                if bit0_Check_Error_Flag == True:
+                    TimeLog_Flag , TimeLog_buff = Check_OGH_Bit_Diff( OGH_Bit_Data , Time_data , file_tile , bit0_Check_Error_Flag )
+                else:
+                    TimeLog_Flag , TimeLog_buff = Check_OGH_Bit_Diff( OGH_Bit_Data_bit0 , Time_data , file_tile , bit0_Check_Error_Flag )
             else:
                 print(f"\n欄位index可能存在偏移 or 非10進位資料, 請手動產圖. 有問題的欄位為: {check_Colum_value},應是OGH_Bit \n")
                 Error_count+=1
@@ -425,16 +465,25 @@ if len(csv_files) >0 :
         if TimeLog_Flag != 0:
             TimeLog_Str += TimeLog_buff
         # =======================================================
+        if Img_count >= 4:
+            if (HB_Img_Path != None) and (OGH_Img_Path != None) and (RPM_Img_Path != None) and (PLx_Img_Path != None) : #防止圖片路徑有問題
+                # 輸出一般用的
+                CombineImg(HB_Img_Path , OGH_Img_Path , RPM_Img_Path , PLx_Img_Path , SaveDir_Path_new , file_tile )
+                # 額外再輸出一張
+                if (Img_Mix_Temp_RPM_Flag >=2) and (RPM_Img_Path2 != None) : #輸出混合的
+                    CombineImg(HB_Img_Path , OGH_Img_Path , RPM_Img_Path2 , PLx_Img_Path , SaveDir_Path_new , file_tile, Custom_Name = "_combined_Mix.png" )
+                else:
+                    print("無達成輸出混和的條件")
+            else:
+                print("有圖片產生錯誤!!")
+                Error_count +=1 #代表有圖不見
+        else:
+            Error_count +=1
+            print(f"\n不足4張圖,只有: {Img_count} 張")
+        # =======================================================
         if Error_count >0:
             Error_string +="有問題的檔案:" + file_tile +"\n"
             Error_Flag=True
-        # =======================================================
-        if Img_count >= 4:
-            CombineImg(HB_Img_Path , OGH_Img_Path , RPM_Img_Path , PLx_Img_Path , SaveDir_Path_new , file_tile )
-            if (Img_Mix_Temp_RPM_Flag >=2):
-                CombineImg(HB_Img_Path , OGH_Img_Path , RPM_Img_Path2 , PLx_Img_Path , SaveDir_Path_new , file_tile, Custom_Name = "_combined_Mix.png" )
-        else:
-            print(f"\n不足4張圖,只有: {Img_count} 張")
     # =======================================================
     if Error_Flag == True:
         with open( SaveDir_Path +'Error_Log.txt', 'w') as file:
