@@ -333,8 +333,8 @@ if len(csv_files) >0 :
                 plt.grid(axis='y', linestyle='--')
                 if bit0_Check_Error_Flag == True:
                     # oring data
-                    if (np.nanmax(OGH_data) >1) and (np.nanmin(OGH_data) == 0) :
-                        plt.ylim(-0.1, 6) #ylabel = 0~6
+                    if (np.nanmax(OGH_Bit_Data) >1) and (np.nanmin(OGH_Bit_Data) == 0) :
+                        plt.ylim(-0.1, 5.5) #ylabel = 0~6
                     else:   #有些檔案只有1跟0 我的天啊
                         plt.ylim(-0.1, 1.1) #ylabel = 0~6
                     plt.plot(OGH_Bit_Data, color='blue', label="Sku")
