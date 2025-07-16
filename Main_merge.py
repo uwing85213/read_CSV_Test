@@ -211,13 +211,13 @@ def Check_OGH_Bit_Diff(OGH_data, Time_data , FileTitle = None , bit0_Check_Error
     return diff_Flag , time_difference_str
 
 # Parameter
-Heartbit_Data_Index = 58
+Heartbit_Data_Index = 58 # excel index : BG
 OGH_Bit_Data_Index = 49 # excel index : AX
-Fan1_RPM_Index = 17
-Fan2_RPM_Index = 21
-Intel_PL4_Index = 13
-Intel_PL2_Index = 8
-Intel_PL1_Index = 3
+Fan1_RPM_Index = 17 # excel index : R
+Fan2_RPM_Index = 21 # excel index : V
+Intel_PL4_Index = 13 # excel index : N
+Intel_PL2_Index = 8 # excel index : I
+Intel_PL1_Index = 3 # excel index : D
 IR_temp_Index = 25  # for Round 46 , index : Z
 CPU_temp_Index = 29 # for Round 46 , index : AD
 VGA_temp_Index = 70 # for Round 46 , index : BS
